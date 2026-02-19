@@ -282,6 +282,7 @@ do { \
 /* What we want declared "everywhere" : */
 
 #include "utils.h"
+#include "uid.h"
 
 SEXP newObject(const char *);
 void validObject(SEXP, const char *);

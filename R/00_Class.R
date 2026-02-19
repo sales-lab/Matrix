@@ -13,6 +13,10 @@
 ## and furthermore to be a vector of length zero rather than NULL ...
 .initialize <- function(.Object, ...) {
     .Object <- callNextMethod()
+
+    uid <- .Call(uid_new)
+    .Object@uid <- uid
+
     ## Suboptimal if ...names() is NULL but that will "never"
     ## happen if ...length() is nonzero:
     if(...length() && any(...names() == "Dimnames"))
@@ -39,8 +43,9 @@
 ## Virtual class of all Matrix objects
 setClass("Matrix",
          contains = "VIRTUAL",
-         slots = c(Dim = "integer", Dimnames = "list"),
-         prototype = list(Dim = integer(2L), Dimnames = list(NULL, NULL)),
+         slots = c(Dim = "integer", Dimnames = "list", uid = "raw"),
+         prototype = list(Dim = integer(2L), Dimnames = list(NULL, NULL),
+                          uid = raw(8L)),
          validity = function(object) .Call(Matrix_validate, object))
 
 setMethod("initialize", c(.Object = "Matrix"),
@@ -548,8 +553,9 @@ setClass("pMatrix",
 
 setClass("MatrixFactorization",
          contains = "VIRTUAL",
-         slots = c(Dim = "integer", Dimnames = "list"),
-         prototype = list(Dim = integer(2L), Dimnames = list(NULL, NULL)),
+         slots = c(Dim = "integer", Dimnames = "list", uid = "raw"),
+         prototype = list(Dim = integer(2L), Dimnames = list(NULL, NULL),
+                          uid = raw(8L)),
          validity = function(object).Call(MatrixFactorization_validate, object))
 
 setMethod("initialize", c(.Object = "MatrixFactorization"),
@@ -755,8 +761,8 @@ setClass("Schur",
 
 setClass("sparseVector",
          contains = "VIRTUAL",
-         slots = c(length = "numeric", i = "numeric"), # 1-based index!
-         prototype = list(length = 0),
+         slots = c(length = "numeric", i = "numeric", uid = "raw"), # 1-based index!
+         prototype = list(length = 0, uid = raw(8L)),
          validity = function(object) .Call(sparseVector_validate, object))
 
 ## Allow users to do new("[nlidz]sparseVector", i=, x=) with unsorted 'i'

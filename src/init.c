@@ -16,6 +16,7 @@
 #include "sparse.h"
 #include "subassign.h"
 #include "subscript.h"
+#include "uid.h"
 #include "utils-R.h"
 #include "validity.h"
 #include "vector.h"
@@ -269,6 +270,8 @@ static R_CallMethodDef CallEntries[] = {
 	CALLDEF(R_Matrix_version, 0),
 	CALLDEF(R_cholmod_common_envini, 1),
 
+	CALLDEF(uid_new, 0),
+
 	{NULL, NULL, 0}
 };
 
@@ -368,6 +371,7 @@ void attribute_visible R_init_Matrix(DllInfo *info)
 	Matrix_sdSym       = install("sd");
 	Matrix_uploSym     = install("uplo");
 	Matrix_xSym        = install("x");
+	Matrix_uidSym      = install("uid");
 
 	Matrix_zzero.r = 0.0; Matrix_zone.r = 1.0; Matrix_zna.r = NA_REAL;
 	Matrix_zzero.i = 0.0; Matrix_zone.i = 0.0; Matrix_zna.i = NA_REAL;

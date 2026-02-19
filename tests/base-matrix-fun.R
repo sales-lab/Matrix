@@ -10,6 +10,8 @@ library(utils)
 
 library(Matrix)
 
+source(system.file("test-tools.R", package = "Matrix"))
+
 data(KNex, package = "Matrix")
 mm <- KNex$mm
 str(m1 <- mm[1:500, 1:200])

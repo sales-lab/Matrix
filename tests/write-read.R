@@ -3,6 +3,8 @@ library(utils)
 
 library(Matrix)
 
+source(system.file("test-tools.R", package = "Matrix"))
+
 ####  Read / Write  (sparse) Matrix objects ----------------------
 
 ### Rebuild the 'mm' example matrix, now in KNex data

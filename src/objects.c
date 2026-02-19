@@ -3,8 +3,11 @@
 
 SEXP newObject(const char *what)
 {
-	SEXP class = PROTECT(R_do_MAKE_CLASS(what)), obj = R_do_new_object(class);
-	UNPROTECT(1);
+	SEXP class = PROTECT(R_do_MAKE_CLASS(what)),
+		obj = PROTECT(R_do_new_object(class));
+	SEXP uid = uid_new();
+	SET_SLOT(obj, Matrix_uidSym, uid);
+	UNPROTECT(2);
 	return obj;
 }
 

@@ -19,4 +19,5 @@ SEXP
 	Matrix_qSym,
 	Matrix_sdSym,
 	Matrix_uploSym,
-	Matrix_xSym;
+	Matrix_xSym,
+	Matrix_uidSym;

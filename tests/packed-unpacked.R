@@ -8,6 +8,8 @@ library(stats)
 library(Matrix)
 set.seed(145206)
 
+source(system.file("test-tools.R", package = "Matrix"))
+
 if (interactive()) {
     options(Matrix.verbose = TRUE, warn = 1, error = recover)
 } else {

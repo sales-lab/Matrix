@@ -4,6 +4,8 @@
 
 library(Matrix)
 
+source(system.file("test-tools.R", package = "Matrix"))
+
 if (interactive()) {
     options(Matrix.verbose = TRUE, warn = 1, error = recover)
 } else {

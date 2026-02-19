@@ -103,6 +103,8 @@
     \item{\code{Dimnames}}{a list of length 2.  Each element must
       be \code{NULL} or a character vector of length equal to the
       corresponding element of \code{Dim}.}
+    \item{\code{uid}}{a length-1 raw vector. Represents a unique 
+      identifier of this \code{Matrix} instance.}
   }
 }
 \section{Methods}{

@@ -4,6 +4,8 @@ library(utils)
 
 library(Matrix)
 
+source(system.file("test-tools.R", package = "Matrix"))
+
 ## This is example(sp....) -- much extended
 
 mEQ <- function(x, y, check.attributes = NA, ...) {
