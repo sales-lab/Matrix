@@ -1,4 +1,5 @@
 #### Will be sourced by several R scripts in ../tests/
+options(Matrix.uid.test = TRUE)
 
 ### ------- Part I & -- unrelated to "Matrix" classes ---------------------
 ### ------- Part II  -- related to matrices, but *not* "Matrix" -----------

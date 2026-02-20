@@ -17,6 +17,8 @@
     uid <- .Call(uid_new)
     .Object@uid <- uid
 
+    log_matrix_info(.Object)
+
     ## Suboptimal if ...names() is NULL but that will "never"
     ## happen if ...length() is nonzero:
     if(...length() && any(...names() == "Dimnames"))

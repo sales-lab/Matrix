@@ -24,6 +24,9 @@ importFrom("methods", .hasSlot, .selectSuperClasses, .slotNames,
            setAs, setClass, setClassUnion, setGeneric, setMethod,
            setOldClass, show, slot, "slot<-", slotNames, validObject)
 
+importFrom("methods", "findMethodSignatures", "findMethods",
+           "getGenerics", "isGeneric")
+
 importFrom("stats", contr.SAS, contr.helmert, contr.poly, contr.sum,
            contr.treatment, "contrasts<-", cov2cor , diffinv, model.frame,
            rnorm, runif, symnum, terms, toeplitz, update)
@@ -263,6 +266,11 @@ exportMethods(cov2cor, toeplitz, update)
 
 ## From 'utils'
 exportMethods(head, tail)
+
+
+## ---- TRACING -----------------------------------------------------
+export(enableMatrixTracing, disableMatrixTracing, isMatrixTracing)
+export(tracing_init, tracing_start_span_r, tracing_end_span_r, tracing_log_new_object, tracing_log_metadata, tracing_shutdown)
 
 
 ## ---- S4 CLASSES -----------------------------------------------------
