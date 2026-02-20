@@ -20,7 +20,9 @@ sources = \
 	sparse.c \
 	subassign.c \
 	subscript.c \
+	tracing.c \
 	utils-R.c \
 	utils.c \
 	validity.c \
-	vector.c
+	vector.c \
+	uid.c
