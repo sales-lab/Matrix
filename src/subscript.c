@@ -1,5 +1,6 @@
 #include "Mdefines.h"
 #include "subscript.h"
+#include "tracing.h"
 
 #define F_X( _X_)  (_X_)
 #define F_ND(_X_) ((_X_) ? 1 : 0)
@@ -418,44 +419,64 @@ SEXP R_subscript_1ary(SEXP x, SEXP i)
 	const char *cl = valid[ivalid];
 	validObject(x, cl);
 
+	SEXP uid_sexp = GET_SLOT(x, Matrix_uidSym);
+	SEXP result;
+
 	switch (cl[2]) {
 	case 'e':
 	case 'y':
 	case 'r':
-		return unpackedMatrix_subscript_1ary(x, i, cl);
+		result = unpackedMatrix_subscript_1ary(x, i, cl);
+		break;
 	case 'p':
-		return   packedMatrix_subscript_1ary(x, i, cl);
-
-	/* NB: for [CRT], the caller must preprocess 'x' and 'i';
-	   symmetric and unit triangular 'x' are not handled specially,
-	   and it is assumed for speed that 'i' is sorted by row [R]
-	   or column [CT] with NA last
-	*/
-
+		result = packedMatrix_subscript_1ary(x, i, cl);
+		break;
 	case 'C':
-		return  CsparseMatrix_subscript_1ary(x, i, cl);
+		result = CsparseMatrix_subscript_1ary(x, i, cl);
+		break;
 	case 'R':
-		return  RsparseMatrix_subscript_1ary(x, i, cl);
+		result = RsparseMatrix_subscript_1ary(x, i, cl);
+		break;
 	case 'T':
 	{
 		char cl_[] = "..CMatrix";
 		cl_[0] = cl[0];
 		cl_[1] = cl[1];
-
-		/* defined in ./coerce.c : */
 		SEXP sparse_as_Csparse(SEXP, const char *);
-
 		x = sparse_as_Csparse(x, cl);
 		PROTECT(x);
-		x = CsparseMatrix_subscript_1ary(x, i, cl_);
+		result = CsparseMatrix_subscript_1ary(x, i, cl_);
 		UNPROTECT(1);
-		return x;
+		break;
 	}
 	case 'i':
-		return diagonalMatrix_subscript_1ary(x, i, cl);
+		result = diagonalMatrix_subscript_1ary(x, i, cl);
+		break;
 	default:
-		return      indMatrix_subscript_1ary(x, i);
+		result = indMatrix_subscript_1ary(x, i);
+		break;
 	}
+
+	/* Tracing support */
+	if (tracing_is_enabled()) {
+		SEXP row_indices = duplicate(i);
+		SEXP col_indices = PROTECT(Rf_allocVector(INTSXP, 0));
+		SEXP op_name = PROTECT(mkString("R_subscript_1ary"));
+		SEXP scope = tracing_start_span_r(op_name, R_NilValue);
+		SEXP uid_sexp = GET_SLOT(x, Matrix_uidSym);
+		PROTECT(row_indices); /* protect duplicate(i) */
+		/* Convert to integer if necessary for tracing */
+		if (TYPEOF(row_indices) != INTSXP) {
+			SEXP tmp = PROTECT(Rf_coerceVector(row_indices, INTSXP));
+			UNPROTECT(1); /* unprotect old row_indices */
+			row_indices = tmp;
+		}
+		tracing_log_subscript(scope, uid_sexp, row_indices, col_indices);
+		tracing_end_span_r(scope);
+		UNPROTECT(3); /* col_indices, op_name, row_indices */
+	}
+
+	return result;
 }
 
 static
@@ -799,13 +820,18 @@ SEXP R_subscript_1ary_mat(SEXP x, SEXP i)
 	const char *cl = valid[ivalid];
 	validObject(x, cl);
 
+	SEXP uid_sexp = GET_SLOT(x, Matrix_uidSym);
+	SEXP result;
+
 	switch (cl[2]) {
 	case 'e':
 	case 'y':
 	case 'r':
-		return unpackedMatrix_subscript_1ary_mat(x, i, cl);
+		result = unpackedMatrix_subscript_1ary_mat(x, i, cl);
+		break;
 	case 'p':
-		return   packedMatrix_subscript_1ary_mat(x, i, cl);
+		result = packedMatrix_subscript_1ary_mat(x, i, cl);
+		break;
 
 	/* NB: for [CRT], the caller must preprocess 'x' and 'i';
 	   symmetric and unit triangular 'x' are not handled specially,
@@ -814,9 +840,11 @@ SEXP R_subscript_1ary_mat(SEXP x, SEXP i)
 	*/
 
 	case 'C':
-		return  CsparseMatrix_subscript_1ary_mat(x, i, cl);
+		result = CsparseMatrix_subscript_1ary_mat(x, i, cl);
+		break;
 	case 'R':
-		return  RsparseMatrix_subscript_1ary_mat(x, i, cl);
+		result = RsparseMatrix_subscript_1ary_mat(x, i, cl);
+		break;
 	case 'T':
 	{
 		char cl_[] = "..CMatrix";
@@ -828,15 +856,35 @@ SEXP R_subscript_1ary_mat(SEXP x, SEXP i)
 
 		x = sparse_as_Csparse(x, cl);
 		PROTECT(x);
-		x = CsparseMatrix_subscript_1ary_mat(x, i, cl_);
+		result = CsparseMatrix_subscript_1ary_mat(x, i, cl_);
 		UNPROTECT(1);
-		return x;
+		break;
 	}
 	case 'i':
-		return diagonalMatrix_subscript_1ary_mat(x, i, cl);
+		result = diagonalMatrix_subscript_1ary_mat(x, i, cl);
+		break;
 	default:
-		return      indMatrix_subscript_1ary_mat(x, i);
+		result = indMatrix_subscript_1ary_mat(x, i);
+		break;
 	}
+
+	/* Tracing support for 2-column matrix subscripting */
+	if (tracing_is_enabled() && !IS_S4_OBJECT(result)) {
+		int len = Rf_length(i) / 2;
+		int *pi = INTEGER(i);
+		SEXP row_indices = PROTECT(Rf_allocVector(INTSXP, len));
+		SEXP col_indices = PROTECT(Rf_allocVector(INTSXP, len));
+		memcpy(INTEGER(row_indices), pi, len * sizeof(int));
+		memcpy(INTEGER(col_indices), pi + len, len * sizeof(int));
+		SEXP op_name = PROTECT(mkString("R_subscript_1ary_mat"));
+		SEXP scope = tracing_start_span_r(op_name, R_NilValue);
+		SEXP uid_sexp = GET_SLOT(x, Matrix_uidSym);
+		tracing_log_subscript(scope, uid_sexp, row_indices, col_indices);
+		tracing_end_span_r(scope);
+		UNPROTECT(3); /* row_indices, col_indices, op_name */
+	}
+
+	return result;
 }
 
 static
