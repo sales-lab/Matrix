@@ -1,6 +1,7 @@
 #include "Mdefines.h"
 #include "coerce.h"
 #include "bind.h"
+#include "tracing.h"
 
 static const char *valid[] = { VALID_NONVIRTUAL_MATRIX, "" };
 
@@ -947,9 +948,25 @@ SEXP bind(SEXP args, SEXP exprs, int margin, int level)
 
 SEXP R_bind(SEXP args)
 {
+	TRACING_SETUP("R_bind");
+
 	SEXP level, margin, exprs;
 	args = CDR(args);  level = CAR(args);
 	args = CDR(args); margin = CAR(args);
 	args = CDR(args);  exprs = CAR(args);
-	return bind(CDR(args), CDR(exprs), asInteger(margin), asInteger(level));
+
+	SEXP result = PROTECT(bind(CDR(args), CDR(exprs), asInteger(margin), asInteger(level)));
+
+	SEXP arg_list = CDR(args);
+	while (arg_list != R_NilValue) {
+		SEXP arg = CAR(arg_list);
+		if (arg != R_NilValue && TYPEOF(arg) == S4SXP) {
+			TRACING_ADD_INPUT(arg);
+		}
+		arg_list = CDR(arg_list);
+	}
+
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }

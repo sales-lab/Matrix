@@ -1,6 +1,7 @@
 #include <math.h> /* fabs, hypot */
 #include "Mdefines.h"
 #include "sparse.h"
+#include "tracing.h"
 
 SEXP sparse_drop0(SEXP from, const char *class, double tol)
 {
@@ -574,6 +575,9 @@ SEXP sparse_band(SEXP from, const char *class, int a, int b)
 /* NB: argument validation more or less copied from R_dense_band() */
 SEXP R_sparse_band(SEXP from, SEXP k1, SEXP k2)
 {
+	TRACING_SETUP("R_sparse_band");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = {
 		VALID_CSPARSE, VALID_RSPARSE, VALID_TSPARSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
@@ -599,7 +603,10 @@ SEXP R_sparse_band(SEXP from, SEXP k1, SEXP k2)
 		error(_("'%s' (%d) must be less than or equal to '%s' (%d)"),
 		      "k1", a, "k2", b);
 
-	return sparse_band(from, valid[ivalid], a, b);
+	SEXP result = PROTECT(sparse_band(from, valid[ivalid], a, b));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP sparse_diag_get(SEXP obj, const char *class, int names)
@@ -773,6 +780,9 @@ SEXP sparse_diag_get(SEXP obj, const char *class, int names)
 /* diag(<[CRT]sparseMatrix>, names=) */
 SEXP R_sparse_diag_get(SEXP obj, SEXP names)
 {
+	TRACING_SETUP("R_sparse_diag_get");
+	TRACING_ADD_INPUT(obj);
+	
 	static const char *valid[] = {
 		VALID_CSPARSE, VALID_RSPARSE, VALID_TSPARSE, "" };
 	int ivalid = R_check_class_etc(obj, valid);
@@ -784,7 +794,10 @@ SEXP R_sparse_diag_get(SEXP obj, SEXP names)
 	    (names_ = LOGICAL(names)[0]) == NA_LOGICAL)
 		error(_("'%s' must be %s or %s"), "names", "TRUE", "FALSE");
 
-	return sparse_diag_get(obj, valid[ivalid], names_);
+	SEXP result = PROTECT(sparse_diag_get(obj, valid[ivalid], names_));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP sparse_diag_set(SEXP from, const char *class, SEXP value)
@@ -1052,6 +1065,9 @@ SEXP sparse_diag_set(SEXP from, const char *class, SEXP value)
 /* diag(<[CRT]sparseMatrix>) <- value */
 SEXP R_sparse_diag_set(SEXP from, SEXP value)
 {
+	TRACING_SETUP("R_sparse_diag_set");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = {
 		VALID_CSPARSE, VALID_RSPARSE, VALID_TSPARSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
@@ -1100,8 +1116,10 @@ SEXP R_sparse_diag_set(SEXP from, SEXP value)
 	}
 
 	from = sparse_diag_set(from, class, value);
-	UNPROTECT(2);
-	return from;
+	SEXP result = PROTECT(from);
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(3);
+	return result;
 }
 
 SEXP sparse_transpose(SEXP from, const char *class, int lazy)
@@ -1221,21 +1239,27 @@ SEXP sparse_transpose(SEXP from, const char *class, int lazy)
 }
 
 /* t(<[CRT]sparseMatrix>) */
-SEXP R_sparse_transpose(SEXP from, SEXP lazy)
-{
-	static const char *valid[] = {
-		VALID_CSPARSE, VALID_RSPARSE, VALID_TSPARSE, "" };
-	int ivalid = R_check_class_etc(from, valid);
-	if (ivalid < 0)
-		ERROR_INVALID_CLASS(from, __func__);
+ SEXP R_sparse_transpose(SEXP from, SEXP lazy)
+ {
+ 	TRACING_SETUP("R_sparse_transpose");
+ 	TRACING_ADD_INPUT(from);
 
-	int lazy_;
-	if (TYPEOF(lazy) != LGLSXP || LENGTH(lazy) < 1 ||
-	    (lazy_ = LOGICAL(lazy)[0]) == NA_LOGICAL)
-		error(_("invalid '%s' to '%s'"), "lazy", __func__);
+ 	static const char *valid[] = {
+ 		VALID_CSPARSE, VALID_RSPARSE, VALID_TSPARSE, "" };
+ 	int ivalid = R_check_class_etc(from, valid);
+ 	if (ivalid < 0)
+ 		ERROR_INVALID_CLASS(from, __func__);
 
-	return sparse_transpose(from, valid[ivalid], lazy_);
-}
+ 	int lazy_;
+ 	if (TYPEOF(lazy) != LGLSXP || LENGTH(lazy) < 1 ||
+ 	    (lazy_ = LOGICAL(lazy)[0]) == NA_LOGICAL)
+ 		error(_("invalid '%s' to '%s'"), "lazy", __func__);
+
+ 	SEXP result = PROTECT(sparse_transpose(from, valid[ivalid], lazy_));
+ 	TRACING_ADD_OUTPUT(result);
+ 	UNPROTECT(1);
+ 	return result;
+ }
 
 SEXP sparse_force_symmetric(SEXP from, const char *class, char ul)
 {
@@ -1613,6 +1637,9 @@ SEXP sparse_force_symmetric(SEXP from, const char *class, char ul)
 /* forceSymmetric(<[CRT]sparseMatrix>, uplo) */
 SEXP R_sparse_force_symmetric(SEXP from, SEXP uplo)
 {
+	TRACING_SETUP("R_sparse_force_symmetric");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = {
 		VALID_CSPARSE, VALID_RSPARSE, VALID_TSPARSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
@@ -1627,7 +1654,10 @@ SEXP R_sparse_force_symmetric(SEXP from, SEXP uplo)
 			error(_("invalid '%s' to '%s'"), "uplo", __func__);
 	}
 
-	return sparse_force_symmetric(from, valid[ivalid], ul);
+	SEXP result = PROTECT(sparse_force_symmetric(from, valid[ivalid], ul));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP sparse_symmpart(SEXP from, const char *class)
@@ -2052,13 +2082,19 @@ SEXP sparse_symmpart(SEXP from, const char *class)
 /* symmpart(<[CRT]sparseMatrix>) */
 SEXP R_sparse_symmpart(SEXP from)
 {
+	TRACING_SETUP("R_sparse_symmpart");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = {
 		VALID_CSPARSE, VALID_RSPARSE, VALID_TSPARSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
 		ERROR_INVALID_CLASS(from, __func__);
 
-	return sparse_symmpart(from, valid[ivalid]);
+	SEXP result = PROTECT(sparse_symmpart(from, valid[ivalid]));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP sparse_skewpart(SEXP from, const char *class)
@@ -2312,13 +2348,19 @@ SEXP sparse_skewpart(SEXP from, const char *class)
 /* skewpart(<[CRT]sparseMatrix>) */
 SEXP R_sparse_skewpart(SEXP from)
 {
+	TRACING_SETUP("R_sparse_skewpart");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = {
 		VALID_CSPARSE, VALID_RSPARSE, VALID_TSPARSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
 		ERROR_INVALID_CLASS(from, __func__);
 
-	return sparse_skewpart(from, valid[ivalid]);
+	SEXP result = PROTECT(sparse_skewpart(from, valid[ivalid]));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 int sparse_is_symmetric(SEXP obj, const char *class, int checkDN)

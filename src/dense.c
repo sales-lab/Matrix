@@ -1,6 +1,7 @@
 #include "Mdefines.h"
 #include "idz.h"
 #include "dense.h"
+#include "tracing.h"
 
 SEXP dense_band(SEXP from, const char *class, int a, int b)
 {
@@ -187,12 +188,16 @@ SEXP dense_band(SEXP from, const char *class, int a, int b)
 /* NB: argument validation more or less copied by R_sparse_band() */
 SEXP R_dense_band(SEXP from, SEXP k1, SEXP k2)
 {
+	TRACING_SETUP("R_dense_band");
+
 	if (!isS4(from)) {
 		/* defined in ./coerce.c : */
 		SEXP matrix_as_dense(SEXP, const char *, char, char, int, int);
 		from = matrix_as_dense(from, ".ge", '\0', '\0', 0, 0);
 	}
 	PROTECT(from);
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = { VALID_DENSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
@@ -218,8 +223,10 @@ SEXP R_dense_band(SEXP from, SEXP k1, SEXP k2)
 		      "k1", a, "k2", b);
 
 	from = dense_band(from, valid[ivalid], a, b);
-	UNPROTECT(1);
-	return from;
+	SEXP result = PROTECT(from);
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(2);
+	return result;
 }
 
 SEXP dense_diag_get(SEXP obj, const char *class, int names)
@@ -310,6 +317,9 @@ SEXP dense_diag_get(SEXP obj, const char *class, int names)
 
 SEXP R_dense_diag_get(SEXP obj, SEXP names)
 {
+	TRACING_SETUP("R_dense_diag_get");
+	TRACING_ADD_INPUT(obj);
+
 	static const char *valid[] = { VALID_DENSE, "" };
 	int ivalid = R_check_class_etc(obj, valid);
 	if (ivalid < 0)
@@ -320,7 +330,10 @@ SEXP R_dense_diag_get(SEXP obj, SEXP names)
 	    (names_ = LOGICAL(names)[0]) == NA_LOGICAL)
 		error(_("'%s' must be %s or %s"), "names", "TRUE", "FALSE");
 
-	return dense_diag_get(obj, valid[ivalid], names_);
+	SEXP result = PROTECT(dense_diag_get(obj, valid[ivalid], names_));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP dense_diag_set(SEXP from, const char *class, SEXP value, int new)
@@ -409,6 +422,9 @@ SEXP dense_diag_set(SEXP from, const char *class, SEXP value, int new)
 
 SEXP R_dense_diag_set(SEXP from, SEXP value)
 {
+	TRACING_SETUP("R_dense_diag_set");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = { VALID_DENSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
@@ -458,8 +474,10 @@ SEXP R_dense_diag_set(SEXP from, SEXP value)
 	}
 
 	from = dense_diag_set(from, class, value, new);
-	UNPROTECT(2);
-	return from;
+	SEXP result = PROTECT(from);
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(3);
+	return result;
 }
 
 SEXP dense_transpose(SEXP from, const char *class)
@@ -566,6 +584,9 @@ SEXP dense_transpose(SEXP from, const char *class)
 
 SEXP R_dense_transpose(SEXP from)
 {
+	TRACING_SETUP("R_dense_transpose");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = {
 		"dpoMatrix", "dppMatrix", "corMatrix", "copMatrix",
 		VALID_DENSE, "" };
@@ -573,7 +594,10 @@ SEXP R_dense_transpose(SEXP from)
 	if (ivalid < 0)
 		ERROR_INVALID_CLASS(from, __func__);
 
-	return dense_transpose(from, valid[ivalid]);
+	SEXP result = PROTECT(dense_transpose(from, valid[ivalid]));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP dense_force_symmetric(SEXP from, const char *class, char ul)
@@ -682,6 +706,9 @@ SEXP dense_force_symmetric(SEXP from, const char *class, char ul)
 
 SEXP R_dense_force_symmetric(SEXP from, SEXP uplo)
 {
+	TRACING_SETUP("R_dense_force_symmetric");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = { VALID_DENSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
@@ -695,7 +722,10 @@ SEXP R_dense_force_symmetric(SEXP from, SEXP uplo)
 			error(_("invalid '%s' to '%s'"), "uplo", __func__);
 	}
 
-	return dense_force_symmetric(from, valid[ivalid], ul);
+	SEXP result = PROTECT(dense_force_symmetric(from, valid[ivalid], ul));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP dense_symmpart(SEXP from, const char *class)
@@ -842,12 +872,18 @@ SEXP dense_symmpart(SEXP from, const char *class)
 
 SEXP R_dense_symmpart(SEXP from)
 {
+	TRACING_SETUP("R_dense_symmpart");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = { VALID_DENSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
 		ERROR_INVALID_CLASS(from, __func__);
 
-	return dense_symmpart(from, valid[ivalid]);
+	SEXP result = PROTECT(dense_symmpart(from, valid[ivalid]));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP dense_skewpart(SEXP from, const char *class)
@@ -1009,12 +1045,18 @@ SEXP dense_skewpart(SEXP from, const char *class)
 
 SEXP R_dense_skewpart(SEXP from)
 {
+	TRACING_SETUP("R_dense_skewpart");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = { VALID_DENSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
 		ERROR_INVALID_CLASS(from, __func__);
 
-	return dense_skewpart(from, valid[ivalid]);
+	SEXP result = PROTECT(dense_skewpart(from, valid[ivalid]));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 int dense_is_symmetric(SEXP obj, const char *class, int checkDN)
