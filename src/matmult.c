@@ -6,6 +6,7 @@
 #include "dense.h"
 #include "sparse.h"
 #include "matmult.h"
+#include "tracing.h"
 
 static
 void matmultDim(SEXP x, SEXP y, int *xtrans, int *ytrans, int *ztrans,
@@ -635,7 +636,12 @@ SEXP R_dense_matmult(SEXP x, SEXP y, SEXP xtrans, SEXP ytrans)
 {
 	int xtrans_ = LOGICAL(xtrans)[0], ytrans_ = LOGICAL(ytrans)[0],
 		ztrans_ = 0, m, n, v;
-	matmultDim(x, y, &xtrans_, &ytrans_, &ztrans_, &m, &n, &v);
+ 	matmultDim(x, y, &xtrans_, &ytrans_, &ztrans_, &m, &n, &v);
+ 
+ 	TRACING_SETUP("R_dense_matmult");
+ 	TRACING_ADD_INPUT(x);
+ 	if (y != R_NilValue)
+ 		TRACING_ADD_INPUT(y);
 
 	PROTECT_INDEX xpid, ypid;
 	PROTECT_WITH_INDEX(x, &xpid);
@@ -761,6 +767,8 @@ SEXP R_dense_matmult(SEXP x, SEXP y, SEXP xtrans, SEXP ytrans)
 		}
 	}
 
+ 	if (IS_S4_OBJECT(x))
+ 		TRACING_ADD_OUTPUT(x);
 	UNPROTECT(2); /* y, x */
 	return x;
 }
@@ -941,7 +949,12 @@ SEXP R_sparse_matmult(SEXP x, SEXP y, SEXP xtrans, SEXP ytrans, SEXP ztrans,
 
 	int xtrans_ = LOGICAL(xtrans)[0], ytrans_ = LOGICAL(ytrans)[0],
 		ztrans_ = LOGICAL(ztrans)[0], m, n, v;
-	matmultDim(x, y, &xtrans_, &ytrans_, &ztrans_, &m, &n, &v);
+ 	matmultDim(x, y, &xtrans_, &ytrans_, &ztrans_, &m, &n, &v);
+ 
+ 	TRACING_SETUP("R_sparse_matmult");
+ 	TRACING_ADD_INPUT(x);
+ 	if (y != R_NilValue)
+ 		TRACING_ADD_INPUT(y);
 
 	PROTECT_INDEX xpid, ypid;
 	PROTECT_WITH_INDEX(x, &xpid);
@@ -1109,6 +1122,8 @@ SEXP R_sparse_matmult(SEXP x, SEXP y, SEXP xtrans, SEXP ytrans, SEXP ztrans,
 	REPROTECT(y = sparse_as_general(y, ycl), ypid);
 	x = dgCMatrix_dgCMatrix_matmult(
 		x, y, xtrans_, ytrans_, ztrans_, triangular, boolean_);
+ 	if (IS_S4_OBJECT(x))
+ 		TRACING_ADD_OUTPUT(x);
 	UNPROTECT(2); /* y, x */
 	return x;
 }
@@ -1293,7 +1308,12 @@ SEXP R_diagonal_matmult(SEXP x, SEXP y, SEXP xtrans, SEXP ytrans,
 
 	int xtrans_ = LOGICAL(xtrans)[0], ytrans_ = LOGICAL(ytrans)[0],
 		ztrans_ = 0, m, n, v;
-	matmultDim(x, y, &xtrans_, &ytrans_, &ztrans_, &m, &n, &v);
+ 	matmultDim(x, y, &xtrans_, &ytrans_, &ztrans_, &m, &n, &v);
+ 
+ 	TRACING_SETUP("R_diagonal_matmult");
+ 	TRACING_ADD_INPUT(x);
+ 	if (y != R_NilValue)
+ 		TRACING_ADD_INPUT(y);
 
 	PROTECT_INDEX xpid, ypid;
 	PROTECT_WITH_INDEX(x, &xpid);
@@ -1437,15 +1457,16 @@ SEXP R_diagonal_matmult(SEXP x, SEXP y, SEXP xtrans, SEXP ytrans,
 	}
 
 	SEXP z;
-	PROTECT_INDEX zpid;
-	const char *zcl = (margin == 0) ? ycl : xcl;
-	PROTECT_WITH_INDEX(z = newObject(zcl), &zpid);
+ 	 PROTECT_INDEX zpid;
+ 	 const char *zcl = (margin == 0) ? ycl : xcl;
+ 	 PROTECT_WITH_INDEX(z = newObject(zcl), &zpid);
+ 	 TRACING_ADD_OUTPUT(z);
 
-	SEXP zdim = PROTECT(GET_SLOT(z, Matrix_DimSym));
-	int *pzdim = INTEGER(zdim);
-	pzdim[0] = m;
-	pzdim[1] = n;
-	UNPROTECT(1); /* zdim */
+ 	 SEXP zdim = PROTECT(GET_SLOT(z, Matrix_DimSym));
+ 	 int *pzdim = INTEGER(zdim);
+ 	 pzdim[0] = m;
+ 	 pzdim[1] = n;
+ 	 UNPROTECT(1); /* zdim */
 
 	SEXP xdimnames = PROTECT(GET_SLOT(x, Matrix_DimNamesSym)),
 		ydimnames = PROTECT(GET_SLOT(y, Matrix_DimNamesSym)),

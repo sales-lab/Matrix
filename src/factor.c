@@ -3,6 +3,7 @@
 #include "cholmod-etc.h"
 #include "Mdefines.h"
 #include "factor.h"
+#include "tracing.h"
 
 /* defined in ./attrib.c : */
 SEXP get_factor(SEXP, const char *);
@@ -251,63 +252,96 @@ SEXP dppMatrix_trf_(SEXP obj, int warn)
 
 SEXP dgeMatrix_trf(SEXP obj, SEXP warn)
 {
+	TRACING_SETUP("dgeMatrix_trf");
+	TRACING_ADD_INPUT(obj);
+
 	SEXP val = get_factor(obj, "denseLU");
 	if (isNull(val)) {
 		PROTECT(val = dgeMatrix_trf_(obj, asInteger(warn)));
 		set_factor(obj, "denseLU", val);
+		TRACING_ADD_OUTPUT(val);
 		UNPROTECT(1);
+	} else {
+		TRACING_ADD_OUTPUT(val);
 	}
 	return val;
 }
 
 SEXP dsyMatrix_trf(SEXP obj, SEXP warn)
 {
+	TRACING_SETUP("dsyMatrix_trf");
+	TRACING_ADD_INPUT(obj);
+
 	SEXP val = get_factor(obj, "BunchKaufman");
 	if (isNull(val)) {
 		PROTECT(val = dsyMatrix_trf_(obj, asInteger(warn)));
 		set_factor(obj, "BunchKaufman", val);
+		TRACING_ADD_OUTPUT(val);
 		UNPROTECT(1);
+	} else {
+		TRACING_ADD_OUTPUT(val);
 	}
 	return val;
 }
 
 SEXP dspMatrix_trf(SEXP obj, SEXP warn)
 {
+	TRACING_SETUP("dspMatrix_trf");
+	TRACING_ADD_INPUT(obj);
+
 	SEXP val = get_factor(obj, "pBunchKaufman");
 	if (isNull(val)) {
 		PROTECT(val = dspMatrix_trf_(obj, asInteger(warn)));
 		set_factor(obj, "pBunchKaufman", val);
+		TRACING_ADD_OUTPUT(val);
 		UNPROTECT(1);
+	} else {
+		TRACING_ADD_OUTPUT(val);
 	}
 	return val;
 }
 
 SEXP dpoMatrix_trf(SEXP obj, SEXP warn, SEXP pivot, SEXP tol)
 {
+	TRACING_SETUP("dpoMatrix_trf");
+	TRACING_ADD_INPUT(obj);
+
 	int pivot_ = asLogical(pivot);
 	SEXP val = get_factor(obj, (pivot_) ? "Cholesky~" : "Cholesky");
 	if (isNull(val)) {
 		double tol_ = asReal(tol);
 		PROTECT(val = dpoMatrix_trf_(obj, asInteger(warn), pivot_, tol_));
 		set_factor(obj, (pivot_) ? "Cholesky~" : "Cholesky", val);
+		TRACING_ADD_OUTPUT(val);
 		UNPROTECT(1);
+	} else {
+		TRACING_ADD_OUTPUT(val);
 	}
 	return val;
 }
 
 SEXP dppMatrix_trf(SEXP obj, SEXP warn)
 {
+	TRACING_SETUP("dppMatrix_trf");
+	TRACING_ADD_INPUT(obj);
+
 	SEXP val = get_factor(obj, "pCholesky");
 	if (isNull(val)) {
 		PROTECT(val = dppMatrix_trf_(obj, asInteger(warn)));
 		set_factor(obj, "pCholesky", val);
+		TRACING_ADD_OUTPUT(val);
 		UNPROTECT(1);
+	} else {
+		TRACING_ADD_OUTPUT(val);
 	}
 	return val;
 }
 
 SEXP dgeMatrix_sch(SEXP x, SEXP vectors, SEXP isDGE)
 {
+	TRACING_SETUP("dgeMatrix_sch");
+	TRACING_ADD_INPUT(x);
+
 // 'x' is either a traditional matrix or a  dgeMatrix, as indicated by isDGE.
     int *dims, n, vecs = asLogical(vectors), is_dge = asLogical(isDGE),
 	info, izero = 0, lwork = -1, nprot = 1;
@@ -336,7 +370,9 @@ SEXP dgeMatrix_sch(SEXP x, SEXP vectors, SEXP isDGE)
     Memcpy(REAL(VECTOR_ELT(val, 2)),
 	   REAL(is_dge ? GET_SLOT(x, Matrix_xSym) : x),
 	   n2);
+    TRACING_ADD_OUTPUT(VECTOR_ELT(val, 2));
     SET_VECTOR_ELT(val, 3, allocMatrix(REALSXP, vecs ? n : 0, vecs ? n : 0));
+    TRACING_ADD_OUTPUT(VECTOR_ELT(val, 3));
     F77_CALL(dgees)(vecs ? "V" : "N", "N", NULL, dims, (double *) NULL, dims, &izero,
 		    (double *) NULL, (double *) NULL, (double *) NULL, dims,
 		    &tmp, &lwork, (int *) NULL, &info FCONE FCONE);
@@ -408,9 +444,14 @@ SEXP dgCMatrix_trf(SEXP obj, SEXP order, SEXP tol, SEXP doError)
 	else if (order_ < 0 || order_ > 3)
 		order_ = 0;
 
+	TRACING_SETUP("dgCMatrix_trf");
+	TRACING_ADD_INPUT(obj);
+
 	SEXP val = get_factor(obj, (order_) ? "sparseLU~" : "sparseLU");
-	if (!isNull(val))
+	if (!isNull(val)) {
+		UNPROTECT(1);
 		return val;
+	}
 	PROTECT(val = newObject("sparseLU"));
 
 	Matrix_cs *A = M2CXS(obj, 1);
@@ -469,6 +510,7 @@ SEXP dgCMatrix_trf(SEXP obj, SEXP order, SEXP tol, SEXP doError)
 	P = Matrix_cs_free(P);
 
 	set_factor(obj, (order_) ? "sparseLU~" : "sparseLU", val);
+	TRACING_ADD_OUTPUT(val);
 	UNPROTECT(1); /* val */
 	return val;
 }
@@ -494,9 +536,14 @@ SEXP dgCMatrix_orf(SEXP obj, SEXP order, SEXP doError)
 	if (order_ < 0 || order_ > 3)
 		order_ = 0;
 
+	TRACING_SETUP("dgCMatrix_orf");
+	TRACING_ADD_INPUT(obj);
+
 	SEXP val = get_factor(obj, (order_) ? "sparseQR~" : "sparseQR");
-	if (!isNull(val))
+	if (!isNull(val)) {
+		UNPROTECT(1);
 		return val;
+	}
 	PROTECT(val = newObject("sparseQR"));
 
 	Matrix_cs *A = M2CXS(obj, 1);
@@ -558,6 +605,7 @@ SEXP dgCMatrix_orf(SEXP obj, SEXP order, SEXP doError)
 	P = Matrix_cs_free(P);
 
 	set_factor(obj, (order_) ? "sparseQR~" : "sparseQR", val);
+	TRACING_ADD_OUTPUT(val);
 	UNPROTECT(1); /* val */
 	return val;
 }
@@ -848,6 +896,9 @@ SEXP BunchKaufman_expand(SEXP obj, SEXP packed)
 
 SEXP CHMfactor_diag_get(SEXP obj, SEXP square)
 {
+	TRACING_SETUP("CHMfactor_diag_get");
+	TRACING_ADD_INPUT(obj);
+	
 	cholmod_factor *L = M2CHF(obj, 1);
 	int n = (int) L->n, square_ = asLogical(square);
 	SEXP y = PROTECT(allocVector(REALSXP, n));
@@ -889,6 +940,10 @@ SEXP CHMfactor_diag_get(SEXP obj, SEXP square)
 
 SEXP CHMfactor_update(SEXP obj, SEXP parent, SEXP mult)
 {
+	TRACING_SETUP("CHMfactor_update");
+	TRACING_ADD_INPUT(obj);
+	TRACING_ADD_INPUT(parent);
+
 	/* defined in ./objects.c : */
 	char Matrix_shape(SEXP);
 
@@ -913,12 +968,17 @@ SEXP CHMfactor_update(SEXP obj, SEXP parent, SEXP mult)
 	SET_SLOT(res, Matrix_DimNamesSym, dimnames);
 	UNPROTECT(1);
 
+	TRACING_ADD_OUTPUT(res);
 	UNPROTECT(1);
 	return res;
 }
 
 SEXP CHMfactor_updown(SEXP obj, SEXP parent, SEXP update)
 {
+	TRACING_SETUP("CHMfactor_updown");
+	TRACING_ADD_INPUT(obj);
+	TRACING_ADD_INPUT(parent);
+
 	/* defined in ./objects.c : */
 	char Matrix_shape(SEXP);
 
@@ -939,6 +999,7 @@ SEXP CHMfactor_updown(SEXP obj, SEXP parent, SEXP update)
 	SET_SLOT(res, Matrix_DimNamesSym, dimnames);
 	UNPROTECT(1);
 
+	TRACING_ADD_OUTPUT(res);
 	UNPROTECT(1);
 	return res;
 }

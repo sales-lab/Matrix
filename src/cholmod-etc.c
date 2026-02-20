@@ -1,6 +1,7 @@
 #include "Mdefines.h"
 #include "idz.h"
 #include "cholmod-etc.h"
+#include "tracing.h"
 
 cholmod_common c ;
 cholmod_common cl;

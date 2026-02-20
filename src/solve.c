@@ -4,6 +4,7 @@
 #include "Mdefines.h"
 #include "idz.h"
 #include "solve.h"
+#include "tracing.h"
 
 static
 void solveDN(SEXP rdn, SEXP adn, SEXP bdn)
@@ -30,8 +31,11 @@ void solveDN(SEXP rdn, SEXP adn, SEXP bdn)
 
 SEXP denseLU_solve(SEXP a, SEXP b)
 {
-
 #define SOLVE_START \
+	TRACING_SETUP("denseLU_solve"); \
+	TRACING_ADD_INPUT(a); \
+	if (!isNull(b)) \
+		TRACING_ADD_INPUT(b); \
 	SEXP adim = GET_SLOT(a, Matrix_DimSym); \
 	int *padim = INTEGER(adim), m = padim[0], n = padim[1]; \
 	if (m != n) \
@@ -41,7 +45,7 @@ SEXP denseLU_solve(SEXP a, SEXP b)
 	int *pbdim = INTEGER(bdim); \
 	if (pbdim[0] != m) \
 		error(_("dimensions of '%s' and '%s' are inconsistent"), \
-		      "a", "b"); \
+		   "a", "b"); \
 	n = pbdim[1]; \
 	}
 
@@ -127,6 +131,8 @@ SEXP denseLU_solve(SEXP a, SEXP b)
 
 	SOLVE_FINISH;
 
+	if (IS_S4_OBJECT(r))
+		TRACING_ADD_OUTPUT(r);
 	UNPROTECT(2); /* r, ax */
 	return r;
 }
@@ -233,6 +239,8 @@ SEXP BunchKaufman_solve(SEXP a, SEXP b)
 
 	SOLVE_FINISH;
 
+	if (IS_S4_OBJECT(r))
+		TRACING_ADD_OUTPUT(r);
 	UNPROTECT(2); /* r, ax */
 	return r;
 }
@@ -365,6 +373,8 @@ SEXP Cholesky_solve(SEXP a, SEXP b)
 
 	SOLVE_FINISH;
 
+	if (IS_S4_OBJECT(r))
+		TRACING_ADD_OUTPUT(r);
 	UNPROTECT(2); /* r, ax */
 	return r;
 }
@@ -483,6 +493,8 @@ SEXP dtrMatrix_solve(SEXP a, SEXP b)
 
 	SOLVE_FINISH;
 
+	if (IS_S4_OBJECT(r))
+		TRACING_ADD_OUTPUT(r);
 	UNPROTECT(2); /* r, ax */
 	return r;
 }
@@ -692,6 +704,8 @@ SEXP sparseLU_solve(SEXP a, SEXP b, SEXP sparse)
 
 	SOLVE_FINISH;
 
+	if (IS_S4_OBJECT(r))
+		TRACING_ADD_OUTPUT(r);
 	UNPROTECT(5); /* r, aq, ap, aU, aL */
 	return r;
 }
@@ -718,7 +732,12 @@ SEXP CHMfactor_solve(SEXP a, SEXP b, SEXP sparse, SEXP system)
 	    (ivalid = strmatch(CHAR(system), valid)) < 0)
 		error(_("invalid '%s' to '%s'"), "system", __func__);
 
-	SOLVE_START;
+	TRACING_SETUP("CHMfactor_solve");
+	TRACING_ADD_INPUT(a);
+	if (!isNull(b))
+		TRACING_ADD_INPUT(b);
+	SEXP adim = GET_SLOT(a, Matrix_DimSym);
+	int *padim = INTEGER(adim), m = padim[0], n = padim[1];
 
 	SEXP r;
 	int j;
@@ -799,8 +818,8 @@ SEXP CHMfactor_solve(SEXP a, SEXP b, SEXP sparse, SEXP system)
 		UNPROTECT(1); /* uplo */
 	}
 
-	SOLVE_FINISH;
-
+	if (IS_S4_OBJECT(r))
+		TRACING_ADD_OUTPUT(r);
 	UNPROTECT(1); /* r */
 	return r;
 }
@@ -927,12 +946,19 @@ SEXP dtCMatrix_solve(SEXP a, SEXP b, SEXP sparse)
 
 	SOLVE_FINISH;
 
+	if (IS_S4_OBJECT(r))
+		TRACING_ADD_OUTPUT(r);
 	UNPROTECT(2); /* r, auplo */
 	return r;
 }
 
 SEXP sparseQR_matmult(SEXP qr, SEXP y, SEXP op, SEXP complete, SEXP yxjj)
 {
+	TRACING_SETUP("sparseQR_matmult");
+	TRACING_ADD_INPUT(qr);
+	if (!isNull(y))
+		TRACING_ADD_INPUT(y);
+
 	SEXP V = PROTECT(GET_SLOT(qr, Matrix_VSym));
 	Matrix_cs *V_ = M2CXS(V, 1);
 	MCS_XTYPE_SET(V_->xtype);
@@ -1114,6 +1140,8 @@ SEXP sparseQR_matmult(SEXP qr, SEXP y, SEXP op, SEXP complete, SEXP yxjj)
 	MATMULT(double, REAL);
 	SET_SLOT(a, Matrix_xSym, ax);
 
+	if (IS_S4_OBJECT(a))
+		TRACING_ADD_OUTPUT(a);
 	UNPROTECT(nprotect); /* ax, a, yx, p, beta, V */
 	return a;
 }

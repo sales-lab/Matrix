@@ -2,6 +2,7 @@
 #include "Mdefines.h"
 #include "idz.h"
 #include "coerce.h"
+#include "tracing.h"
 
 SEXP vector_as_dense(SEXP from, const char *zzz, char ul, char di,
                      int m, int n, int byrow, SEXP dimnames)
@@ -155,10 +156,25 @@ SEXP vector_as_dense(SEXP from, const char *zzz, char ul, char di,
 
 #undef VAD_SUBCASES
 
-	SET_SLOT(to, Matrix_xSym, x);
+ 	SET_SLOT(to, Matrix_xSym, x);
 
-	UNPROTECT(3);
-	return to;
+ 	if (tracing_is_enabled()) {
+ 		SEXP dim = GET_SLOT(to, Matrix_DimSym);
+ 		int *pdim = INTEGER(dim);
+ 		int nnz_dense;
+ 		if (cl[2] != 'p') {
+ 			nnz_dense = m * n;
+ 		} else {
+ 			nnz_dense = (m * n + n) / 2;
+ 		}
+ 		tracing_log_metadata(GET_SLOT(to, Matrix_uidSym),
+ 		                     ScalarInteger(pdim[0]),
+ 		                     ScalarInteger(pdim[1]),
+ 		                     ScalarInteger(nnz_dense));
+ 	}
+
+ 	UNPROTECT(3);
+ 	return to;
 }
 
 SEXP R_vector_as_dense(SEXP from, SEXP zzz, SEXP uplo, SEXP diag,
@@ -504,7 +520,10 @@ SEXP sparse_as_dense(SEXP from, const char *class, int packed)
 	cl[1] = class[1];
 	cl[2] = (packed) ? 'p' :
 		((class[1] == 'g') ? 'e' : ((class[1] == 's') ? 'y' : 'r'));
+	TRACING_SETUP("sparse_as_dense");
+	TRACING_ADD_INPUT(from);
 	SEXP to = PROTECT(newObject(cl));
+	TRACING_ADD_OUTPUT(to);
 
 	SEXP dim = PROTECT(GET_SLOT(from, Matrix_DimSym));
 	int *pdim = INTEGER(dim), m = pdim[0], n = pdim[1];
@@ -778,6 +797,9 @@ SEXP sparse_as_dense(SEXP from, const char *class, int packed)
 /* as(<[CRT]sparseMatrix>, "(un)?packedMatrix") */
 SEXP R_sparse_as_dense(SEXP from, SEXP packed)
 {
+	TRACING_SETUP("R_sparse_as_dense");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = {
 		VALID_CSPARSE, VALID_RSPARSE, VALID_TSPARSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
@@ -789,7 +811,10 @@ SEXP R_sparse_as_dense(SEXP from, SEXP packed)
 	    (packed_ = LOGICAL(packed)[0]) == NA_LOGICAL)
 		error(_("'%s' must be %s or %s"), "packed", "TRUE", "FALSE");
 
-	return sparse_as_dense(from, valid[ivalid], packed_);
+	SEXP result = PROTECT(sparse_as_dense(from, valid[ivalid], packed_));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP diagonal_as_dense(SEXP from, const char *class,
@@ -799,7 +824,10 @@ SEXP diagonal_as_dense(SEXP from, const char *class,
 	cl[0] = (kind == '.') ? class[0] : ((kind == ',') ? ((class[0] == 'z') ? 'z' : 'd') : kind);
 	cl[1] = shape;
 	cl[2] = (cl[1] == 'g') ? 'e' : ((packed) ? 'p' : ((cl[1] == 's') ? 'y' : 'r'));
+	TRACING_SETUP("diagonal_as_dense");
+	TRACING_ADD_INPUT(from);
 	SEXP to = PROTECT(newObject(cl));
+	TRACING_ADD_OUTPUT(to);
 
 	SEXP dim = PROTECT(GET_SLOT(from, Matrix_DimSym));
 	int n = INTEGER(dim)[0];
@@ -890,6 +918,9 @@ SEXP diagonal_as_dense(SEXP from, const char *class,
 SEXP R_diagonal_as_dense(SEXP from,
                          SEXP kind, SEXP shape, SEXP packed, SEXP uplo)
 {
+	TRACING_SETUP("R_diagonal_as_dense");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = { VALID_DIAGONAL, "" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
@@ -922,7 +953,10 @@ SEXP R_diagonal_as_dense(SEXP from,
 			error(_("'%s' must be \"%s\" or \"%s\""), "uplo", "U", "L");
 	}
 
-	return diagonal_as_dense(from, valid[ivalid], kind_, shape_, packed_, ul);
+	SEXP result = PROTECT(diagonal_as_dense(from, valid[ivalid], kind_, shape_, packed_, ul));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP index_as_dense(SEXP from, const char *class, char kind)
@@ -933,7 +967,10 @@ SEXP index_as_dense(SEXP from, const char *class, char kind)
 
 	char cl[] = ".geMatrix";
 	cl[0] = (kind == '.') ? 'n' : ((kind == ',') ? 'd' : kind);
+	TRACING_SETUP("index_as_dense");
+	TRACING_ADD_INPUT(from);
 	SEXP to = PROTECT(newObject(cl));
+	TRACING_ADD_OUTPUT(to);
 
 	SEXP dim = PROTECT(GET_SLOT(from, Matrix_DimSym));
 	int *pdim = INTEGER(dim), m = pdim[0], n = pdim[1];
@@ -1000,6 +1037,9 @@ SEXP index_as_dense(SEXP from, const char *class, char kind)
 /* as(<indMatrix>, ".geMatrix") */
 SEXP R_index_as_dense(SEXP from, SEXP kind)
 {
+	TRACING_SETUP("R_index_as_dense");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = { "indMatrix", "pMatrix" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
@@ -1011,7 +1051,10 @@ SEXP R_index_as_dense(SEXP from, SEXP kind)
 	    (kind_ = CHAR(kind)[0]) == '\0')
 		error(_("invalid '%s' to '%s'"), "kind", __func__);
 
-	return index_as_dense(from, valid[ivalid], kind_);
+	SEXP result = PROTECT(index_as_dense(from, valid[ivalid], kind_));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP vector_as_sparse(SEXP from, const char *zzz, char ul, char di,
@@ -1426,25 +1469,32 @@ SEXP vector_as_sparse(SEXP from, const char *zzz, char ul, char di,
 #undef VAS_SUBCASES
 #undef VAS_SUBSUBCASES
 
-	for (j_ = 0; j_ < n_; ++j_)
-		pp1[j_] += pp1[j_ - 1];
+ 	for (j_ = 0; j_ < n_; ++j_)
+ 		pp1[j_] += pp1[j_ - 1];
 
-	switch (zzz[2]) {
-	case 'C':
-		to = sparse_as_Csparse(to, cl);
-		break;
-	case 'R':
-		to = sparse_as_Rsparse(to, cl);
-		break;
-	case 'T':
-		to = sparse_as_Tsparse(to, cl);
-		break;
-	default:
-		break;
-	}
+ 	if (tracing_is_enabled()) {
+ 		tracing_log_metadata(GET_SLOT(to, Matrix_uidSym),
+ 		                     ScalarInteger(m_),
+ 		                     ScalarInteger(n_),
+ 		                     ScalarInteger((int)nnz1));
+ 	}
 
-	UNPROTECT(5); /* i1, p1, to, x0, i0 */
-	return to;
+ 	switch (zzz[2]) {
+ 	case 'C':
+ 		to = sparse_as_Csparse(to, cl);
+ 		break;
+ 	case 'R':
+ 		to = sparse_as_Rsparse(to, cl);
+ 		break;
+ 	case 'T':
+ 		to = sparse_as_Tsparse(to, cl);
+ 		break;
+ 	default:
+ 		break;
+ 	}
+
+ 	UNPROTECT(5); /* i1, p1, to, x0, i0 */
+ 	return to;
 }
 
 SEXP R_vector_as_sparse(SEXP from, SEXP zzz, SEXP uplo, SEXP diag,
@@ -1647,7 +1697,10 @@ SEXP dense_as_sparse(SEXP from, const char *class, char repr)
 	cl[0] = class[0];
 	cl[1] = class[1];
 	cl[2] = repr;
+	TRACING_SETUP("dense_as_sparse");
+	TRACING_ADD_INPUT(from);
 	SEXP to = PROTECT(newObject(cl));
+	TRACING_ADD_OUTPUT(to);
 
 	SEXP dim = PROTECT(GET_SLOT(from, Matrix_DimSym));
 	int *pdim = INTEGER(dim), m = pdim[0], n = pdim[1];
@@ -2046,6 +2099,9 @@ SEXP dense_as_sparse(SEXP from, const char *class, char repr)
 /* as(<denseMatrix>, "[CRT]sparseMatrix") */
 SEXP R_dense_as_sparse(SEXP from, SEXP repr)
 {
+	TRACING_SETUP("R_dense_as_sparse");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = { VALID_DENSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
@@ -2057,7 +2113,10 @@ SEXP R_dense_as_sparse(SEXP from, SEXP repr)
 	    ((repr_ = CHAR(repr)[0]) != 'C' && repr_ != 'R' && repr_ != 'T'))
 		error(_("invalid '%s' to '%s'"), "repr", __func__);
 
-	return dense_as_sparse(from, valid[ivalid], repr_);
+	SEXP result = PROTECT(dense_as_sparse(from, valid[ivalid], repr_));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP diagonal_as_sparse(SEXP from, const char *class,
@@ -2067,7 +2126,10 @@ SEXP diagonal_as_sparse(SEXP from, const char *class,
 	cl[0] = (kind == '.') ? class[0] : ((kind == ',') ? ((class[0] == 'z') ? 'z' : 'd') : kind);
 	cl[1] = shape;
 	cl[2] = repr;
+	TRACING_SETUP("diagonal_as_sparse");
+	TRACING_ADD_INPUT(from);
 	SEXP to = PROTECT(newObject(cl));
+	TRACING_ADD_OUTPUT(to);
 
 	SEXP dim = PROTECT(GET_SLOT(from, Matrix_DimSym));
 	int n = INTEGER(dim)[0];
@@ -2241,6 +2303,9 @@ SEXP diagonal_as_sparse(SEXP from, const char *class,
 SEXP R_diagonal_as_sparse(SEXP from,
                           SEXP kind, SEXP shape, SEXP repr, SEXP uplo)
 {
+	TRACING_SETUP("R_diagonal_as_sparse");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = { VALID_DIAGONAL, "" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
@@ -2272,7 +2337,10 @@ SEXP R_diagonal_as_sparse(SEXP from,
 			error(_("'%s' must be \"%s\" or \"%s\""), "uplo", "U", "L");
 	}
 
-	return diagonal_as_sparse(from, valid[ivalid], kind_, shape_, repr_, ul);
+	SEXP result = PROTECT(diagonal_as_sparse(from, valid[ivalid], kind_, shape_, repr_, ul));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP index_as_sparse(SEXP from, const char *class, char kind, char repr)
@@ -2284,7 +2352,10 @@ SEXP index_as_sparse(SEXP from, const char *class, char kind, char repr)
 	char cl[] = ".g.Matrix";
 	cl[0] = (kind == '.') ? 'n' : ((kind == ',') ? 'd' : kind);
 	cl[2] = (repr == '.') ? ((mg == 0) ? 'R' : 'C') : repr;
+	TRACING_SETUP("index_as_sparse");
+	TRACING_ADD_INPUT(from);
 	SEXP to = PROTECT(newObject(cl));
+	TRACING_ADD_OUTPUT(to);
 
 	SEXP dim = PROTECT(GET_SLOT(from, Matrix_DimSym));
 	int *pdim = INTEGER(dim), m = pdim[0], n = pdim[1],
@@ -2382,6 +2453,9 @@ SEXP index_as_sparse(SEXP from, const char *class, char kind, char repr)
 /* as(<indMatrix>, ".g[CRT]Matrix") */
 SEXP R_index_as_sparse(SEXP from, SEXP kind, SEXP repr)
 {
+	TRACING_SETUP("R_index_as_sparse");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = { "indMatrix", "pMatrix" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
@@ -2400,7 +2474,10 @@ SEXP R_index_as_sparse(SEXP from, SEXP kind, SEXP repr)
 	     repr_ != 'C' && repr_ != 'R' && repr_ != 'T'))
 		error(_("invalid '%s' to '%s'"), "repr", __func__);
 
-	return index_as_sparse(from, valid[ivalid], kind_, repr_);
+	SEXP result = PROTECT(index_as_sparse(from, valid[ivalid], kind_, repr_));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP dense_as_kind(SEXP from, const char *class, char kind, int new)
@@ -3805,13 +3882,19 @@ SEXP sparse_as_Csparse(SEXP from, const char *class)
 /* as(<[CRT]sparseMatrix>, "CsparseMatrix") */
 SEXP R_sparse_as_Csparse(SEXP from)
 {
+	TRACING_SETUP("R_sparse_as_Csparse");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = {
 		VALID_CSPARSE, VALID_RSPARSE, VALID_TSPARSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
 		ERROR_INVALID_CLASS(from, __func__);
 
-	return sparse_as_Csparse(from, valid[ivalid]);
+	SEXP result = PROTECT(sparse_as_Csparse(from, valid[ivalid]));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP sparse_as_Rsparse(SEXP from, const char *class)
@@ -3904,13 +3987,19 @@ SEXP sparse_as_Rsparse(SEXP from, const char *class)
 /* as(<[CRT]sparseMatrix>, "RsparseMatrix") */
 SEXP R_sparse_as_Rsparse(SEXP from)
 {
+	TRACING_SETUP("R_sparse_as_Rsparse");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = {
 		VALID_CSPARSE, VALID_RSPARSE, VALID_TSPARSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
 		ERROR_INVALID_CLASS(from, __func__);
 
-	return sparse_as_Rsparse(from, valid[ivalid]);
+	SEXP result = PROTECT(sparse_as_Rsparse(from, valid[ivalid]));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 SEXP sparse_as_Tsparse(SEXP from, const char *class)
@@ -4013,13 +4102,19 @@ SEXP sparse_as_Tsparse(SEXP from, const char *class)
 /* as(<[CRT]sparseMatrix>, "TsparseMatrix") */
 SEXP R_sparse_as_Tsparse(SEXP from)
 {
+	TRACING_SETUP("R_sparse_as_Tsparse");
+	TRACING_ADD_INPUT(from);
+
 	static const char *valid[] = {
 		VALID_CSPARSE, VALID_RSPARSE, VALID_TSPARSE, "" };
 	int ivalid = R_check_class_etc(from, valid);
 	if (ivalid < 0)
 		ERROR_INVALID_CLASS(from, __func__);
 
-	return sparse_as_Tsparse(from, valid[ivalid]);
+	SEXP result = PROTECT(sparse_as_Tsparse(from, valid[ivalid]));
+	TRACING_ADD_OUTPUT(result);
+	UNPROTECT(1);
+	return result;
 }
 
 /* as(<Matrix>, "vector") */
