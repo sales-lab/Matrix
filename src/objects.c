@@ -1,5 +1,6 @@
 #include "Mdefines.h"
 #include "objects.h"
+#include "tracing.h"
 
 SEXP newObject(const char *what)
 {
@@ -7,6 +8,11 @@ SEXP newObject(const char *what)
 		obj = PROTECT(R_do_new_object(class));
 	SEXP uid = uid_new();
 	SET_SLOT(obj, Matrix_uidSym, uid);
+	if (tracing_is_enabled()) {
+		SEXP class_sexp = PROTECT(mkString(what));
+		tracing_log_new_object(class_sexp, uid);
+		UNPROTECT(1);
+	}
 	UNPROTECT(2);
 	return obj;
 }

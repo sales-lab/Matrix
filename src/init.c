@@ -16,6 +16,7 @@
 #include "sparse.h"
 #include "subassign.h"
 #include "subscript.h"
+#include "tracing.h"
 #include "uid.h"
 #include "utils-R.h"
 #include "validity.h"
@@ -270,7 +271,15 @@ static R_CallMethodDef CallEntries[] = {
 	CALLDEF(R_Matrix_version, 0),
 	CALLDEF(R_cholmod_common_envini, 1),
 
-	CALLDEF(uid_new, 0),
+  CALLDEF(uid_new, 0),
+  CALLDEF(tracing_init, 1),
+  CALLDEF(tracing_start_span_r, 2),
+	CALLDEF(tracing_end_span_r, 1),
+  CALLDEF(tracing_log_new_object, 2),
+  CALLDEF(tracing_log_metadata, 4),
+  CALLDEF(tracing_log_operation, 3),
+  CALLDEF(tracing_log_subscript, 4),
+  CALLDEF(tracing_shutdown, 0),
 
 	{NULL, NULL, 0}
 };
@@ -377,6 +386,7 @@ void attribute_visible R_init_Matrix(DllInfo *info)
 	Matrix_zzero.i = 0.0; Matrix_zone.i = 0.0; Matrix_zna.i = NA_REAL;
 
 	R_cholmod_start(&c);
+	
 	return;
 }
 
